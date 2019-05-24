@@ -1,7 +1,9 @@
 package com.wingice.service.impl;
 
+import com.google.gson.JsonObject;
 import com.microsoft.graph.authentication.IAuthenticationProvider;
 import com.microsoft.graph.core.DefaultClientConfig;
+import com.microsoft.graph.http.IHttpRequest;
 import com.microsoft.graph.models.extensions.Event;
 import com.microsoft.graph.models.extensions.IGraphServiceClient;
 import com.microsoft.graph.options.Option;
@@ -14,9 +16,7 @@ import com.wingice.service.IGraphEventService;
 import com.wingice.utils.datetime.DateTimeUtils;
 
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author 胡昊
@@ -35,10 +35,6 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public List<Event> getUserEvent(UserEventParams params) {
-        final IAuthenticationProvider mAuthenticationProvider = request -> {
-            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
-            request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
-        };
         final List<Option> optionList = new ArrayList<>();
         final StringBuilder filterStr = new StringBuilder();
         if (null != params.getStart() && null != params.getEnd()) {
@@ -72,7 +68,10 @@ public class GraphEventServiceImpl implements IGraphEventService {
         }
         final QueryOption orderby = new QueryOption("$orderby", "start/dateTime desc");
         optionList.add(orderby);
-        final IGraphServiceClient client = GraphServiceClient.fromConfig(DefaultClientConfig.createWithAuthenticationProvider(mAuthenticationProvider));
+        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
+            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
+            request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
+        }).buildClient();
         IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).events().buildRequest(optionList).get();
         final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
         if (null == params.getPageNum() && null == params.getPageSize()) {
@@ -82,5 +81,27 @@ public class GraphEventServiceImpl implements IGraphEventService {
             }
         }
         return eventList;
+    }
+
+    @Override
+    public void cancelEvent(String userPrincipalName, String id, String comment) {
+        Event event = authenticatedClientService.getClient()
+                .users(userPrincipalName)
+                .events(id)
+                .buildRequest()
+                .get();
+        //会议室中事件id和组织者事件id不一致
+        final QueryOption filter = new QueryOption("$filter", "isCancelled eq false and subject eq '" + event.subject + "'");
+        event = authenticatedClientService.getClient()
+                .users(event.organizer.emailAddress.address)
+                .events()
+                .buildRequest(Collections.singletonList(filter))
+                .get().getCurrentPage().get(0);
+        JsonObject body = new JsonObject();
+        body.addProperty("Comment", comment);
+        authenticatedClientService.getBetaClient()
+                .customRequest("/users/" + event.organizer.emailAddress.address + "/events/" + event.id + "/cancel")
+                .buildRequest()
+                .post(body);
     }
 }

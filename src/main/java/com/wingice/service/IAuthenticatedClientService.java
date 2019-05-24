@@ -19,9 +19,16 @@ public interface IAuthenticatedClientService {
     String getAccessToken();
 
     /**
-     * 获取sdk Client
+     * 获取1.0终结点的Client
      *
-     * @return sdk Client
+     * @return client
      */
-    IGraphServiceClient getAuthenticatedClient();
+    IGraphServiceClient getClient();
+
+    /**
+     * 获取Beta终结点的Client
+     *
+     * @return client
+     */
+    IGraphServiceClient getBetaClient();
 }

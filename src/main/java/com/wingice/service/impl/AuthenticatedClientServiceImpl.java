@@ -40,13 +40,28 @@ public class AuthenticatedClientServiceImpl implements IAuthenticatedClientServi
     }
 
     @Override
-    public IGraphServiceClient getAuthenticatedClient() {
+    public IGraphServiceClient getClient() {
         try {
             getAccessToken();
             IAuthenticationProvider mAuthenticationProvider = request -> request.addHeader("Authorization",
                     "Bearer " + accessToken);
             IClientConfig mClientConfig = DefaultClientConfig.createWithAuthenticationProvider(mAuthenticationProvider);
             return GraphServiceClient.fromConfig(mClientConfig);
+        } catch (Exception e) {
+            throw new Error("Could not create a graph client: " + e.getLocalizedMessage());
+        }
+    }
+
+    @Override
+    public IGraphServiceClient getBetaClient() {
+        try {
+            getAccessToken();
+            IAuthenticationProvider mAuthenticationProvider = request -> request.addHeader("Authorization",
+                    "Bearer " + accessToken);
+            IClientConfig mClientConfig = DefaultClientConfig.createWithAuthenticationProvider(mAuthenticationProvider);
+            IGraphServiceClient betaClient = GraphServiceClient.fromConfig(mClientConfig);
+            betaClient.setServiceRoot("https://graph.microsoft.com/beta");
+            return betaClient;
         } catch (Exception e) {
             throw new Error("Could not create a graph client: " + e.getLocalizedMessage());
         }

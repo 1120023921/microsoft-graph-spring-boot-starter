@@ -9,10 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.time.ZoneId;
 import java.util.List;
-
-import static org.junit.Assert.*;
 
 /**
  * @author 胡昊
@@ -31,16 +28,24 @@ public class GraphEventServiceImplTest {
     @Test
     public void getUserEvent() {
         UserEventParams params = new UserEventParams();
-        params.setUserPrincipalName("2015014093@wingice.com");
-//        params.setStart(1558319400000L);
-//        params.setEnd(1558578600000L);
+        params.setUserPrincipalName("MeetingRoom101@wingice.com");
+        params.setStart(1558319400000L);
+        params.setEnd(1558837800000L);
         params.setPageNum(1);
         params.setPageSize(5);
 //        params.setTimezone(ZoneId.systemDefault().getId());
         params.setContentType("TEXT");
-        params.setIsOrganizer("false");
+//        params.setIsOrganizer("true");
         params.setIsCancelled("false");
         List<Event> eventList = graphEventService.getUserEvent(params);
         eventList.forEach(event -> System.out.println(event.subject));
+    }
+
+    @Test
+    public void cancelEvent() {
+        String userPrincipalName = "MeetingRoom101@wingice.com";
+        String id = "AAMkAGY3MDY2N2NkLTk4OGItNDJjZi05OTY0LTk0YzMwMGI4MDI4OABGAAAAAADWVU_aJ1IaTZud6pgzdPobBwAmSWOGEKZCSo09voE4tB53AAAAAAENAAAmSWOGEKZCSo09voE4tB53AAABm88rAAA=";
+        String comment = "ww";
+        graphEventService.cancelEvent(userPrincipalName, id, comment);
     }
 }

@@ -21,4 +21,13 @@ public interface IGraphEventService {
      * @return 事件列表
      */
     List<Event> getUserEvent(UserEventParams params);
+
+    /**
+     * 取消事件
+     *
+     * @param userPrincipalName 用户名
+     * @param id                事件id
+     * @param comment           取消通知信息
+     */
+    void cancelEvent(String userPrincipalName, String id, String comment);
 }
