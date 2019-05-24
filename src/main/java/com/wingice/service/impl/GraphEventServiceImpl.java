@@ -48,10 +48,18 @@ public class GraphEventServiceImpl implements IGraphEventService {
                     .append(DateTimeUtils.longToString(params.getEnd(), ZoneId.of(params.getTimezone(), ZoneId.SHORT_IDS), "yyyy-MM-dd'T'HH:mm:ss"))
                     .append("'");
         }
-        if (filterStr.length() > 0) {
-            filterStr.append(" and ");
+        if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
+            if (filterStr.length() > 0) {
+                filterStr.append(" and ");
+            }
+            filterStr.append("isOrganizer eq ").append(params.getIsOrganizer());
         }
-        filterStr.append("isOrganizer eq ").append(params.getIsOrganizer());
+        if (null != params.getIsCancelled() && !"".equals(params.getIsCancelled().trim())) {
+            if (filterStr.length() > 0) {
+                filterStr.append(" and ");
+            }
+            filterStr.append("isCancelled eq ").append(params.getIsCancelled());
+        }
         if (filterStr.length() > 0) {
             final QueryOption filter = new QueryOption("$filter", filterStr.toString());
             optionList.add(filter);

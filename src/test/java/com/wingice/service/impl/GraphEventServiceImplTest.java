@@ -31,14 +31,15 @@ public class GraphEventServiceImplTest {
     @Test
     public void getUserEvent() {
         UserEventParams params = new UserEventParams();
-        params.setUserPrincipalName("MeetingRoom101@wingice.com");
+        params.setUserPrincipalName("2015014093@wingice.com");
 //        params.setStart(1558319400000L);
 //        params.setEnd(1558578600000L);
         params.setPageNum(1);
-        params.setPageSize(2);
-        params.setTimezone(ZoneId.systemDefault().getId());
+        params.setPageSize(5);
+//        params.setTimezone(ZoneId.systemDefault().getId());
         params.setContentType("TEXT");
-//        params.setIsOrganizer("true");
+        params.setIsOrganizer("false");
+        params.setIsCancelled("false");
         List<Event> eventList = graphEventService.getUserEvent(params);
         eventList.forEach(event -> System.out.println(event.subject));
     }

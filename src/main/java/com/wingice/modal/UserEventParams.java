@@ -43,7 +43,12 @@ public class UserEventParams {
     /**
      * 是否是组织者
      */
-    private String isOrganizer = "false";
+    private String isOrganizer;
+
+    /**
+     * 是否取消
+     */
+    private String isCancelled;
 
     public String getUserPrincipalName() {
         return userPrincipalName;
@@ -107,5 +112,13 @@ public class UserEventParams {
 
     public void setIsOrganizer(String isOrganizer) {
         this.isOrganizer = isOrganizer;
+    }
+
+    public String getIsCancelled() {
+        return isCancelled;
+    }
+
+    public void setIsCancelled(String isCancelled) {
+        this.isCancelled = isCancelled;
     }
 }
