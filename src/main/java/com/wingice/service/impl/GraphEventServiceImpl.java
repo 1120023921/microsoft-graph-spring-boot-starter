@@ -1,12 +1,14 @@
 package com.wingice.service.impl;
 
 import com.google.gson.JsonObject;
-import com.microsoft.graph.models.extensions.Event;
-import com.microsoft.graph.models.extensions.IGraphServiceClient;
+import com.microsoft.graph.models.extensions.*;
+import com.microsoft.graph.models.generated.AttendeeType;
+import com.microsoft.graph.models.generated.LocationType;
 import com.microsoft.graph.options.Option;
 import com.microsoft.graph.options.QueryOption;
 import com.microsoft.graph.requests.extensions.GraphServiceClient;
 import com.microsoft.graph.requests.extensions.IEventCollectionPage;
+import com.wingice.modal.EventCreateParams;
 import com.wingice.modal.UserEventParams;
 import com.wingice.service.IAuthenticatedClientService;
 import com.wingice.service.IGraphEventService;
@@ -14,6 +16,7 @@ import com.wingice.utils.datetime.DateTimeUtils;
 
 import java.time.ZoneId;
 import java.util.*;
+import java.util.List;
 
 /**
  * @author 胡昊
@@ -100,5 +103,44 @@ public class GraphEventServiceImpl implements IGraphEventService {
                 .customRequest("/users/" + event.organizer.emailAddress.address + "/events/" + event.id + "/cancel")
                 .buildRequest()
                 .post(body);
+    }
+
+    @Override
+    public Event createEvent(String userPrincipalName, EventCreateParams params) {
+        final Event event = new Event();
+        //设置标题
+        event.subject = params.getSubject();
+        event.body = params.getBody();
+        //设置时间 时区不存在采用系统环境时区
+        String id = ZoneId.SHORT_IDS.get(params.getTimeZone());
+        id = (id != null ? id : ZoneId.systemDefault().getId());
+        DateTimeTimeZone start = new DateTimeTimeZone();
+        start.timeZone = id;
+        start.dateTime = DateTimeUtils.longToString(params.getStart(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
+        event.start = start;
+        DateTimeTimeZone end = new DateTimeTimeZone();
+        end.timeZone = id;
+        end.dateTime = DateTimeUtils.longToString(params.getStart(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
+        event.end = end;
+        //设置地点
+        event.location = params.getLocation();
+        //与会人添加会议室信息（如果会议地点已设置为资源）
+        if (null != params.getLocation() && null != params.getLocation().locationEmailAddress && !"".equals(params.getLocation().locationEmailAddress)) {
+            //设置地点类型
+            event.location.locationType = LocationType.CONFERENCE_ROOM;
+            EmailAddress emailAddress = new EmailAddress();
+            emailAddress.address = params.getLocation().locationEmailAddress;
+            Attendee attendee = new Attendee();
+            attendee.emailAddress = emailAddress;
+            attendee.type = AttendeeType.RESOURCE;
+            params.getAttendees().add(attendee);
+        }
+        event.attendees = params.getAttendees();
+        //发送创建事件请求
+        return authenticatedClientService.getBetaClient()
+                .users(userPrincipalName)
+                .events()
+                .buildRequest()
+                .post(event);
     }
 }

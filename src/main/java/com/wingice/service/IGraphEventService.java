@@ -1,6 +1,7 @@
 package com.wingice.service;
 
 import com.microsoft.graph.models.extensions.Event;
+import com.wingice.modal.EventCreateParams;
 import com.wingice.modal.UserEventParams;
 
 import java.util.List;
@@ -30,4 +31,12 @@ public interface IGraphEventService {
      * @param comment           取消通知信息
      */
     void cancelEvent(String userPrincipalName, String id, String comment);
+
+    /**
+     * 创建事件
+     *
+     * @param params 事件参数
+     * @return 相应对象
+     */
+    Event createEvent(String userPrincipalName, EventCreateParams params);
 }
