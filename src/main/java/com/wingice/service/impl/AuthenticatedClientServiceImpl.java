@@ -9,11 +9,8 @@ import com.microsoft.graph.models.extensions.IGraphServiceClient;
 import com.microsoft.graph.requests.extensions.GraphServiceClient;
 import com.wingice.config.GraphProperties;
 import com.wingice.service.IAuthenticatedClientService;
-import com.wingice.utils.HttpClientUtils;
+import com.wingice.utils.http.HttpRequestUtil;
 import com.wingice.utils.jwt.JwtTokenUtil;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author 胡昊
@@ -68,19 +65,8 @@ public class AuthenticatedClientServiceImpl implements IAuthenticatedClientServi
     }
 
     private String getNewAccessToken() {
-        Map<String, String> header = new HashMap<>();
-        header.put("Content-Type", "application/x-www-form-urlencoded");
-        Map<String, String> params = new HashMap<>();
-        params.put("client_id", properties.getClientId());
-        params.put("scope", properties.getScope());
-        params.put("client_secret", properties.getSecret());
-        params.put("grant_type", properties.getGrantType());
-        try {
-            String result = HttpClientUtils.doPost(properties.getTokenEndpoint(), params, header);
-            JsonObject res = new GsonBuilder().create().fromJson(result, JsonObject.class);
-            return res.get("access_token").toString().replaceAll("\"", "");
-        } catch (Exception e) {
-            throw new Error("Error retrieving access token: " + e.getLocalizedMessage());
-        }
+        String params = "client_id=" + properties.getClientId() + "&scope=" + properties.getScope() + "&client_secret=" + properties.getSecret() + "&grant_type=" + properties.getGrantType();
+        String result = HttpRequestUtil.sendPost(properties.getTokenEndpoint(), params, null);
+        return new GsonBuilder().create().fromJson(result, JsonObject.class).get("access_token").toString().replaceAll("\"", "");
     }
 }

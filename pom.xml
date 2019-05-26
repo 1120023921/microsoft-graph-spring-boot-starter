@@ -7,18 +7,6 @@
     <groupId>com.wingice</groupId>
     <artifactId>microsoft-graph-spring-boot-starter</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
     <dependencies>
         <dependency>
@@ -73,10 +61,35 @@
         </dependencies>
     </dependencyManagement>
     <distributionManagement>
+        <snapshotRepository>
+            <id>sankemaven</id>
+            <name>sanke maven</name>
+            <url>http://10.70.50.55:8088/repository/maven-snapshots</url>
+        </snapshotRepository>
         <repository>
             <id>sankemaven</id>
             <name>sanke maven</name>
             <url>http://10.70.50.55:8088/repository/maven-releases</url>
         </repository>
     </distributionManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.18.1</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
