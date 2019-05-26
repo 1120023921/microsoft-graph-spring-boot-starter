@@ -1,8 +1,8 @@
 package com.wingice.service;
 
 import com.microsoft.graph.models.extensions.Event;
-import com.wingice.modal.EventCreateParams;
-import com.wingice.modal.UserEventParams;
+import com.wingice.model.EventCreateParams;
+import com.wingice.model.UserEventParams;
 
 import java.util.List;
 

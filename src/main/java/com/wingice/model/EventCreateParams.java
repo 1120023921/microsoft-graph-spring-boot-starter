@@ -1,4 +1,4 @@
-package com.wingice.modal;
+package com.wingice.model;
 
 
 import com.microsoft.graph.models.extensions.Attendee;
