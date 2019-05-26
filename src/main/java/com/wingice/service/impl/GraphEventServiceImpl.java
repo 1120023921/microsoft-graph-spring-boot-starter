@@ -1,9 +1,6 @@
 package com.wingice.service.impl;
 
 import com.google.gson.JsonObject;
-import com.microsoft.graph.authentication.IAuthenticationProvider;
-import com.microsoft.graph.core.DefaultClientConfig;
-import com.microsoft.graph.http.IHttpRequest;
 import com.microsoft.graph.models.extensions.Event;
 import com.microsoft.graph.models.extensions.IGraphServiceClient;
 import com.microsoft.graph.options.Option;
