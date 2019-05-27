@@ -143,4 +143,22 @@ public class GraphEventServiceImpl implements IGraphEventService {
                 .buildRequest()
                 .post(event);
     }
+
+    @Override
+    public Boolean checkConflict(String userPrincipalName, Long start, Long end, String timezone) {
+        String zoneId;
+        if (null != timezone && !"".equals(timezone)) {
+            zoneId = ZoneId.SHORT_IDS.get(timezone);
+            zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
+        } else {
+            zoneId = ZoneId.systemDefault().getId();
+        }
+        final UserEventParams params = new UserEventParams();
+        //开始时间+1分钟 结束时间-1分钟 处理边界冲突
+        params.setStart(start + 60 * 1000);
+        params.setEnd(end - 60 * 1000);
+        params.setTimezone(zoneId);
+        params.setUserPrincipalName(userPrincipalName);
+        return getUserEvent(params).size() > 0;
+    }
 }

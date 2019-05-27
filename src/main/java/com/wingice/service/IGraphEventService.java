@@ -39,4 +39,15 @@ public interface IGraphEventService {
      * @return 相应对象
      */
     Event createEvent(String userPrincipalName, EventCreateParams params);
+
+    /**
+     * 创建事件检测时间冲突
+     *
+     * @param userPrincipalName 用户
+     * @param start             开始时间
+     * @param end               结束时间
+     * @param timezone          时区 null为系统默认时区
+     * @return 是否冲突 true冲突 false无冲突
+     */
+    Boolean checkConflict(String userPrincipalName, Long start, Long end, String timezone);
 }

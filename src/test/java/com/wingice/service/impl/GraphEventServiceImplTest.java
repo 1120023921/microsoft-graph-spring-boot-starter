@@ -33,8 +33,8 @@ public class GraphEventServiceImplTest {
     public void getUserEvent() {
         UserEventParams params = new UserEventParams();
         params.setUserPrincipalName("MeetingRoom101@wingice.com");
-        params.setStart(1558864800000L);
-        params.setEnd(1558866600000L);
+        params.setStart(1558926000000L);
+        params.setEnd(1558969200000L);
         params.setPageNum(1);
         params.setPageSize(5);
 //        params.setTimezone(ZoneId.systemDefault().getId());
@@ -62,8 +62,8 @@ public class GraphEventServiceImplTest {
         body.content = "Does late morning work for you?";
         params.setBody(body);
         params.setTimeZone("Pacific Standard Time");
-        params.setStart(1558864800000L);
-        params.setEnd(1558866600000L);
+        params.setStart(1558924200000L);
+        params.setEnd(1558926000000L);
         Location location = new Location();
         location.locationEmailAddress = "MeetingRoom101@wingice.com";
         params.setLocation(location);
@@ -77,5 +77,10 @@ public class GraphEventServiceImplTest {
         params.setAttendees(attendees);
         Event event = graphEventService.createEvent("2015014074@wingice.com", params);
         System.out.println(event);
+    }
+
+    @Test
+    public void checkConflict() {
+        System.out.println(graphEventService.checkConflict("MeetingRoom101@wingice.com", 1558926000000L, 1558969200000L, null));
     }
 }
