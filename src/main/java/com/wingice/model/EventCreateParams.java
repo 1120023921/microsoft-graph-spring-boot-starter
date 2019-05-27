@@ -17,6 +17,7 @@ import java.util.List;
  */
 public class EventCreateParams {
 
+    private String userPrincipalName;
     private String subject;
     private ItemBody body;
     private Long start;
@@ -24,6 +25,14 @@ public class EventCreateParams {
     private String timeZone;
     private Location location;
     private List<Attendee> attendees = new ArrayList<>();
+
+    public String getUserPrincipalName() {
+        return userPrincipalName;
+    }
+
+    public void setUserPrincipalName(String userPrincipalName) {
+        this.userPrincipalName = userPrincipalName;
+    }
 
     public String getSubject() {
         return subject;

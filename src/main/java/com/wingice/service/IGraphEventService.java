@@ -38,7 +38,7 @@ public interface IGraphEventService {
      * @param params 事件参数
      * @return 相应对象
      */
-    Event createEvent(String userPrincipalName, EventCreateParams params);
+    Event createEvent(EventCreateParams params);
 
     /**
      * 创建事件检测时间冲突

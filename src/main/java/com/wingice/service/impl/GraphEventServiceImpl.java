@@ -106,7 +106,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
     }
 
     @Override
-    public Event createEvent(String userPrincipalName, EventCreateParams params) {
+    public Event createEvent(EventCreateParams params) {
         final Event event = new Event();
         //设置标题
         event.subject = params.getSubject();
@@ -138,7 +138,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
         event.attendees = params.getAttendees();
         //发送创建事件请求
         return authenticatedClientService.getBetaClient()
-                .users(userPrincipalName)
+                .users(params.getUserPrincipalName())
                 .events()
                 .buildRequest()
                 .post(event);
