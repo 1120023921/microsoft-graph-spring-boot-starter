@@ -153,12 +153,24 @@ public class GraphEventServiceImpl implements IGraphEventService {
         } else {
             zoneId = ZoneId.systemDefault().getId();
         }
-        final UserEventParams params = new UserEventParams();
-        //开始时间+1分钟 结束时间-1分钟 处理边界冲突
-        params.setStart(start + 60 * 1000);
-        params.setEnd(end - 60 * 1000);
-        params.setTimezone(zoneId);
-        params.setUserPrincipalName(userPrincipalName);
-        return getUserEvent(params).size() > 0;
+        final List<Option> optionList = new ArrayList<>();
+        String filterStr = "((start/dateTime ge '" +
+                DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                "' and start/dateTime lt '" +
+                DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                "') or (end/dateTime gt '" +
+                DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                "' and end/dateTime le '" +
+                DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                "'))";
+        final QueryOption filter = new QueryOption("$filter", filterStr);
+        optionList.add(filter);
+        final String finalZoneId = zoneId;
+        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
+            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
+            request.addHeader("Prefer", "outlook.timezone=\"" + finalZoneId + "\"");
+        }).buildClient();
+        IEventCollectionPage eventCollectionPage = client.users(userPrincipalName).events().buildRequest(optionList).get();
+        return eventCollectionPage.getCurrentPage().size() > 0;
     }
 }

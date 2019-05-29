@@ -82,6 +82,6 @@ public class GraphEventServiceImplTest {
 
     @Test
     public void checkConflict() {
-        System.out.println(graphEventService.checkConflict("MeetingRoom101@wingice.com", 1558926000000L, 1558969200000L, null));
+        System.out.println(graphEventService.checkConflict("MeetingRoom101@wingice.com", 1559181600000L, 1559185200000L, null));
     }
 }
