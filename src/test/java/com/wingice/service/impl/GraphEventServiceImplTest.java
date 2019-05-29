@@ -56,26 +56,27 @@ public class GraphEventServiceImplTest {
     @Test
     public void createEvent() {
         EventCreateParams params = new EventCreateParams();
-        params.setSubject("Let's go for lunch");
+        params.setUserPrincipalName("2015014093@wingice.com");
+        params.setSubject("Let's go for lunch1");
         ItemBody body = new ItemBody();
         body.contentType = BodyType.HTML;
         body.content = "Does late morning work for you?";
         params.setBody(body);
         params.setTimeZone("Pacific Standard Time");
-        params.setStart(1558924200000L);
-        params.setEnd(1558926000000L);
+        params.setStart(1559055600000L);
+        params.setEnd(1559057400000L);
         Location location = new Location();
         location.locationEmailAddress = "MeetingRoom101@wingice.com";
         params.setLocation(location);
         EmailAddress emailAddress = new EmailAddress();
-        emailAddress.address = "2015014093@wingice.com";
+        emailAddress.address = "2015014074@wingice.com";
         Attendee attendee = new Attendee();
         attendee.emailAddress = emailAddress;
         attendee.type = AttendeeType.REQUIRED;
         List<Attendee> attendees = new ArrayList<>();
         attendees.add(attendee);
         params.setAttendees(attendees);
-        Event event = graphEventService.createEvent("2015014074@wingice.com", params);
+        Event event = graphEventService.createEvent(params);
         System.out.println(event);
     }
 

@@ -120,7 +120,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
         event.start = start;
         DateTimeTimeZone end = new DateTimeTimeZone();
         end.timeZone = id;
-        end.dateTime = DateTimeUtils.longToString(params.getStart(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
+        end.dateTime = DateTimeUtils.longToString(params.getEnd(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
         event.end = end;
         //设置地点
         event.location = params.getLocation();
