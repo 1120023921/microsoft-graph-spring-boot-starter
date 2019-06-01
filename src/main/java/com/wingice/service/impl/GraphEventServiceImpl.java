@@ -36,28 +36,36 @@ public class GraphEventServiceImpl implements IGraphEventService {
     @Override
     public List<Event> getUserEvent(UserEventParams params) {
         final List<Option> optionList = new ArrayList<>();
-        final StringBuilder filterStr = new StringBuilder();
+        String filterStr = null;
         if (null != params.getStart() && null != params.getEnd()) {
-            filterStr.append("start/dateTime ge '")
-                    .append(DateTimeUtils.longToString(params.getStart(), ZoneId.of(params.getTimezone(), ZoneId.SHORT_IDS), "yyyy-MM-dd'T'HH:mm:ss"))
-                    .append("' and end/dateTime le '")
-                    .append(DateTimeUtils.longToString(params.getEnd(), ZoneId.of(params.getTimezone(), ZoneId.SHORT_IDS), "yyyy-MM-dd'T'HH:mm:ss"))
-                    .append("'");
+            String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
+            zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
+            filterStr = "((start/dateTime ge '" +
+                    DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                    "' and start/dateTime lt '" +
+                    DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                    "') or (end/dateTime gt '" +
+                    DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                    "' and end/dateTime le '" +
+                    DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
+                    "'))";
         }
         if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
-            if (filterStr.length() > 0) {
-                filterStr.append(" and ");
+            if (null != filterStr && !"".equals(filterStr)) {
+                filterStr += " and ";
             }
-            filterStr.append("isOrganizer eq ").append(params.getIsOrganizer());
+            filterStr += "isOrganizer eq ";
+            filterStr += params.getIsOrganizer();
         }
         if (null != params.getIsCancelled() && !"".equals(params.getIsCancelled().trim())) {
-            if (filterStr.length() > 0) {
-                filterStr.append(" and ");
+            if (null != filterStr && !"".equals(filterStr)) {
+                filterStr += " and ";
             }
-            filterStr.append("isCancelled eq ").append(params.getIsCancelled());
+            filterStr += ("isCancelled eq ");
+            filterStr += params.getIsCancelled();
         }
-        if (filterStr.length() > 0) {
-            final QueryOption filter = new QueryOption("$filter", filterStr.toString());
+        if (null != filterStr && !"".equals(filterStr)) {
+            final QueryOption filter = new QueryOption("$filter", filterStr);
             optionList.add(filter);
         }
         if (null != params.getPageNum() && null != params.getPageSize()) {
