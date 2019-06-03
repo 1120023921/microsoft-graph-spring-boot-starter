@@ -4,6 +4,7 @@ import com.microsoft.graph.models.extensions.*;
 import com.microsoft.graph.models.generated.AttendeeType;
 import com.microsoft.graph.models.generated.BodyType;
 import com.wingice.model.EventCreateParams;
+import com.wingice.model.EventUpdateParams;
 import com.wingice.model.UserEventParams;
 import com.wingice.service.IGraphEventService;
 import org.junit.Test;
@@ -83,5 +84,33 @@ public class GraphEventServiceImplTest {
     @Test
     public void checkConflict() {
         System.out.println(graphEventService.checkConflict("MeetingRoom101@wingice.com", 1559181600000L, 1559185200000L, null));
+    }
+
+    @Test
+    public void updateEvent() {
+        EventUpdateParams params = new EventUpdateParams();
+        params.setUserPrincipalName("MeetingRoom101@wingice.com");
+        params.setId("AAMkAGY3MDY2N2NkLTk4OGItNDJjZi05OTY0LTk0YzMwMGI4MDI4OABGAAAAAADWVU_aJ1IaTZud6pgzdPobBwAmSWOGEKZCSo09voE4tB53AAAAAAENAAAmSWOGEKZCSo09voE4tB53AAAH3zUiAAA=");
+        params.setSubject("Let's go for lunch1");
+        ItemBody body = new ItemBody();
+        body.contentType = BodyType.HTML;
+        body.content = "Does late morning work for you?";
+        params.setBody(body);
+        params.setTimeZone("Pacific Standard Time");
+        params.setStart(1559559600000L);
+        params.setEnd(1559561400000L);
+        Location location = new Location();
+        location.locationEmailAddress = "MeetingRoom101@wingice.com";
+        params.setLocation(location);
+        EmailAddress emailAddress = new EmailAddress();
+        emailAddress.address = "2015014040@wingice.com";
+        Attendee attendee = new Attendee();
+        attendee.emailAddress = emailAddress;
+        attendee.type = AttendeeType.REQUIRED;
+        List<Attendee> attendees = new ArrayList<>();
+        attendees.add(attendee);
+        params.setAttendees(attendees);
+        Event event = graphEventService.updateEvent(params);
+        System.out.println(event);
     }
 }

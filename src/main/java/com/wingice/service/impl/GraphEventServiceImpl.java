@@ -9,6 +9,8 @@ import com.microsoft.graph.options.QueryOption;
 import com.microsoft.graph.requests.extensions.GraphServiceClient;
 import com.microsoft.graph.requests.extensions.IEventCollectionPage;
 import com.wingice.model.EventCreateParams;
+import com.wingice.model.EventParams;
+import com.wingice.model.EventUpdateParams;
 import com.wingice.model.UserEventParams;
 import com.wingice.service.IAuthenticatedClientService;
 import com.wingice.service.IGraphEventService;
@@ -93,18 +95,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public void cancelEvent(String userPrincipalName, String id, String comment) {
-        Event event = authenticatedClientService.getClient()
-                .users(userPrincipalName)
-                .events(id)
-                .buildRequest()
-                .get();
-        //会议室中事件id和组织者事件id不一致
-        final QueryOption filter = new QueryOption("$filter", "isCancelled eq false and subject eq '" + event.subject + "'");
-        event = authenticatedClientService.getClient()
-                .users(event.organizer.emailAddress.address)
-                .events()
-                .buildRequest(Collections.singletonList(filter))
-                .get().getCurrentPage().get(0);
+        Event event = transferEvent(userPrincipalName, id);
         JsonObject body = new JsonObject();
         body.addProperty("Comment", comment);
         authenticatedClientService.getBetaClient()
@@ -115,35 +106,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public Event createEvent(EventCreateParams params) {
-        final Event event = new Event();
-        //设置标题
-        event.subject = params.getSubject();
-        event.body = params.getBody();
-        //设置时间 时区不存在采用系统环境时区
-        String id = ZoneId.SHORT_IDS.get(params.getTimeZone());
-        id = (id != null ? id : ZoneId.systemDefault().getId());
-        DateTimeTimeZone start = new DateTimeTimeZone();
-        start.timeZone = id;
-        start.dateTime = DateTimeUtils.longToString(params.getStart(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
-        event.start = start;
-        DateTimeTimeZone end = new DateTimeTimeZone();
-        end.timeZone = id;
-        end.dateTime = DateTimeUtils.longToString(params.getEnd(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
-        event.end = end;
-        //设置地点
-        event.location = params.getLocation();
-        //与会人添加会议室信息（如果会议地点已设置为资源）
-        if (null != params.getLocation() && null != params.getLocation().locationEmailAddress && !"".equals(params.getLocation().locationEmailAddress)) {
-            //设置地点类型
-            event.location.locationType = LocationType.CONFERENCE_ROOM;
-            EmailAddress emailAddress = new EmailAddress();
-            emailAddress.address = params.getLocation().locationEmailAddress;
-            Attendee attendee = new Attendee();
-            attendee.emailAddress = emailAddress;
-            attendee.type = AttendeeType.RESOURCE;
-            params.getAttendees().add(attendee);
-        }
-        event.attendees = params.getAttendees();
+        final Event event = buildEvent(params);
         //发送创建事件请求
         return authenticatedClientService.getBetaClient()
                 .users(params.getUserPrincipalName())
@@ -180,5 +143,79 @@ public class GraphEventServiceImpl implements IGraphEventService {
         }).buildClient();
         IEventCollectionPage eventCollectionPage = client.users(userPrincipalName).events().buildRequest(optionList).get();
         return eventCollectionPage.getCurrentPage().size() > 0;
+    }
+
+    @Override
+    public Event updateEvent(EventUpdateParams params) {
+        Event userEvent = transferEvent(params.getUserPrincipalName(), params.getId());
+        final Event event = buildEvent(params);
+        return authenticatedClientService.getClient()
+                .users(userEvent.organizer.emailAddress.address)
+                .events(userEvent.id)
+                .buildRequest()
+                .patch(event);
+    }
+
+    /**
+     * 会议室中事件id和组织者事件id不一致 转化事件
+     *
+     * @param userPrincipalName 用户名
+     * @param id                事件id
+     * @return 用户事件
+     */
+    private Event transferEvent(String userPrincipalName, String id) {
+        Event event = authenticatedClientService.getClient()
+                .users(userPrincipalName)
+                .events(id)
+                .buildRequest()
+                .get();
+        //会议室中事件id和组织者事件id不一致
+        final QueryOption filter = new QueryOption("$filter", "isCancelled eq false and subject eq '" + event.subject + "'");
+        return authenticatedClientService.getClient()
+                .users(event.organizer.emailAddress.address)
+                .events()
+                .buildRequest(Collections.singletonList(filter))
+                .get().getCurrentPage().get(0);
+    }
+
+    /**
+     * 参数组装Event对象
+     *
+     * @param params 参数
+     * @return event对象
+     */
+    private <T extends EventParams> Event buildEvent(T params) {
+        final Event event = new Event();
+        //设置是否响应
+        event.responseRequested = params.getResponseRequested();
+        //设置标题
+        event.subject = params.getSubject();
+        event.body = params.getBody();
+        //设置时间 时区不存在采用系统环境时区
+        String id = ZoneId.SHORT_IDS.get(params.getTimeZone());
+        id = (id != null ? id : ZoneId.systemDefault().getId());
+        DateTimeTimeZone start = new DateTimeTimeZone();
+        start.timeZone = id;
+        start.dateTime = DateTimeUtils.longToString(params.getStart(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
+        event.start = start;
+        DateTimeTimeZone end = new DateTimeTimeZone();
+        end.timeZone = id;
+        end.dateTime = DateTimeUtils.longToString(params.getEnd(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
+        event.end = end;
+        //设置地点
+        event.location = params.getLocation();
+        //与会人添加会议室信息（如果会议地点已设置为资源）
+        if (null != params.getLocation() && null != params.getLocation().locationEmailAddress && !"".equals(params.getLocation().locationEmailAddress)) {
+            //设置地点类型
+            event.location.locationType = LocationType.CONFERENCE_ROOM;
+            EmailAddress emailAddress = new EmailAddress();
+            emailAddress.address = params.getLocation().locationEmailAddress;
+            Attendee attendee = new Attendee();
+            attendee.emailAddress = emailAddress;
+            attendee.type = AttendeeType.RESOURCE;
+            params.getAttendees().add(attendee);
+        }
+        event.attendees = params.getAttendees();
+        return event;
     }
 }

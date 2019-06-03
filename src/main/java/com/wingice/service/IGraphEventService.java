@@ -2,6 +2,7 @@ package com.wingice.service;
 
 import com.microsoft.graph.models.extensions.Event;
 import com.wingice.model.EventCreateParams;
+import com.wingice.model.EventUpdateParams;
 import com.wingice.model.UserEventParams;
 
 import java.util.List;
@@ -50,4 +51,12 @@ public interface IGraphEventService {
      * @return 是否冲突 true冲突 false无冲突
      */
     Boolean checkConflict(String userPrincipalName, Long start, Long end, String timezone);
+
+    /**
+     * 更新事件
+     *
+     * @param params 事件参数
+     * @return 更新的 event 对象
+     */
+    Event updateEvent(EventUpdateParams params);
 }
