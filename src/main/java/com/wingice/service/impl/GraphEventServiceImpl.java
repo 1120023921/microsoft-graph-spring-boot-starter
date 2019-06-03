@@ -76,7 +76,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
             optionList.add(top);
             optionList.add(skip);
         }
-        final QueryOption orderby = new QueryOption("$orderby", "start/dateTime desc");
+        final QueryOption orderby = new QueryOption("$orderby", "start/dateTime asc");
         optionList.add(orderby);
         final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
             request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
