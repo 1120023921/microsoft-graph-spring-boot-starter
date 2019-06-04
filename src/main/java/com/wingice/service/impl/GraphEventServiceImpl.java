@@ -76,8 +76,10 @@ public class GraphEventServiceImpl implements IGraphEventService {
             optionList.add(top);
             optionList.add(skip);
         }
-        final QueryOption orderby = new QueryOption("$orderby", "start/dateTime asc");
-        optionList.add(orderby);
+        if (null != params.getOrderBy() && !"".equals(params.getOrderBy())) {
+            final QueryOption orderby = new QueryOption("$orderby", params.getOrderBy());
+            optionList.add(orderby);
+        }
         final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
             request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
             request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");

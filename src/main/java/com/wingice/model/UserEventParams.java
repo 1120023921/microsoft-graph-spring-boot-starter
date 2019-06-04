@@ -50,6 +50,19 @@ public class UserEventParams {
      */
     private String isCancelled;
 
+    /**
+     * 排序
+     */
+    private String orderBy;
+
+    public String getOrderBy() {
+        return orderBy;
+    }
+
+    public void setOrderBy(String orderBy) {
+        this.orderBy = orderBy;
+    }
+
     public String getUserPrincipalName() {
         return userPrincipalName;
     }
