@@ -15,6 +15,8 @@ import com.wingice.model.UserEventParams;
 import com.wingice.service.IAuthenticatedClientService;
 import com.wingice.service.IGraphEventService;
 import com.wingice.utils.datetime.DateTimeUtils;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.ZoneId;
 import java.util.*;
@@ -108,7 +110,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public Event createEvent(EventCreateParams params) {
-        final Event event = buildEvent(params);
+        final Event event = buildEvent(params, null);
         //发送创建事件请求
         return authenticatedClientService.getBetaClient()
                 .users(params.getUserPrincipalName())
@@ -149,8 +151,8 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public Event updateEvent(EventUpdateParams params) {
-        Event userEvent = transferEvent(params.getUserPrincipalName(), params.getId());
-        final Event event = buildEvent(params);
+        final Event userEvent = transferEvent(params.getUserPrincipalName(), params.getId());
+        final Event event = buildEvent(params, userEvent);
         return authenticatedClientService.getClient()
                 .users(userEvent.organizer.emailAddress.address)
                 .events(userEvent.id)
@@ -186,13 +188,19 @@ public class GraphEventServiceImpl implements IGraphEventService {
      * @param params 参数
      * @return event对象
      */
-    private <T extends EventParams> Event buildEvent(T params) {
-        final Event event = new Event();
+    private <T extends EventParams> Event buildEvent(T params, Event event) {
+        if (null == event) {
+            event = new Event();
+        }
         //设置是否响应
         event.responseRequested = params.getResponseRequested();
         //设置标题
-        event.subject = params.getSubject();
-        event.body = params.getBody();
+        if (!StringUtils.isEmpty(params.getSubject())) {
+            event.subject = params.getSubject();
+        }
+        if (!StringUtils.isEmpty(params.getBody())) {
+            event.body = params.getBody();
+        }
         //设置时间 时区不存在采用系统环境时区
         String id = ZoneId.SHORT_IDS.get(params.getTimeZone());
         id = (id != null ? id : ZoneId.systemDefault().getId());
@@ -205,7 +213,9 @@ public class GraphEventServiceImpl implements IGraphEventService {
         end.dateTime = DateTimeUtils.longToString(params.getEnd(), ZoneId.of(id), "yyyy-MM-dd'T'HH:mm:ss");
         event.end = end;
         //设置地点
-        event.location = params.getLocation();
+        if (null != params.getLocation()) {
+            event.location = params.getLocation();
+        }
         //与会人添加会议室信息（如果会议地点已设置为资源）
         if (null != params.getLocation() && null != params.getLocation().locationEmailAddress && !"".equals(params.getLocation().locationEmailAddress)) {
             //设置地点类型
@@ -217,7 +227,9 @@ public class GraphEventServiceImpl implements IGraphEventService {
             attendee.type = AttendeeType.RESOURCE;
             params.getAttendees().add(attendee);
         }
-        event.attendees = params.getAttendees();
+        if (!CollectionUtils.isEmpty(params.getAttendees())) {
+            event.attendees = params.getAttendees();
+        }
         return event;
     }
 }
