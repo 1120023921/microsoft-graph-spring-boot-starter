@@ -44,15 +44,9 @@ public class GraphEventServiceImpl implements IGraphEventService {
         if (null != params.getStart() && null != params.getEnd()) {
             String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
             zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
-            filterStr = "((start/dateTime ge '" +
-                    DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                    "' and start/dateTime lt '" +
-                    DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                    "') or (end/dateTime gt '" +
-                    DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                    "' and end/dateTime le '" +
-                    DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                    "'))";
+            filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                    "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                    "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
         }
         if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
             if (null != filterStr && !"".equals(filterStr)) {
@@ -129,15 +123,9 @@ public class GraphEventServiceImpl implements IGraphEventService {
             zoneId = ZoneId.systemDefault().getId();
         }
         final List<Option> optionList = new ArrayList<>();
-        String filterStr = "((start/dateTime ge '" +
-                DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                "' and start/dateTime lt '" +
-                DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                "') or (end/dateTime gt '" +
-                DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                "' and end/dateTime le '" +
-                DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") +
-                "'))";
+        String filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                "or (end/dateTime gt '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                "or (start/dateTime le '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
         final QueryOption filter = new QueryOption("$filter", filterStr);
         optionList.add(filter);
         final String finalZoneId = zoneId;
