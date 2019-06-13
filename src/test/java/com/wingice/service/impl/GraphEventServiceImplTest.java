@@ -33,9 +33,9 @@ public class GraphEventServiceImplTest {
     @Test
     public void getUserEvent() {
         UserEventParams params = new UserEventParams();
-        params.setUserPrincipalName("2015014093@wingice.com");
-        params.setStart(1560258000000L);
-        params.setEnd(1560260400000L);
+        params.setUserPrincipalName("MeetingRoom101@wingice.com");
+        params.setStart(1563033600000L);
+        params.setEnd(1563120000000L);
         params.setPageNum(1);
         params.setPageSize(5);
 //        params.setTimezone(ZoneId.systemDefault().getId());

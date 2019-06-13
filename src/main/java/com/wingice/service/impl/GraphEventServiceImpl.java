@@ -40,18 +40,23 @@ public class GraphEventServiceImpl implements IGraphEventService {
     @Override
     public List<Event> getUserEvent(UserEventParams params) {
         final List<Option> optionList = new ArrayList<>();
-        String filterStr = null;
+        String filterStr = "";
         if (null != params.getStart() && null != params.getEnd()) {
             String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
             zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
-            filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-                    "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-                    "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
+            //开始时间加1秒
+            final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(params.getStart() + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+            final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+            optionList.add(startDateTime);
+            optionList.add(endDateTime);
+//            filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+//                    "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+//                    "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
         }
         if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
-            if (null != filterStr && !"".equals(filterStr)) {
-                filterStr += " and ";
-            }
+//            if (null != filterStr && !"".equals(filterStr)) {
+//                filterStr += " and ";
+//            }
             filterStr += "isOrganizer eq ";
             filterStr += params.getIsOrganizer();
         }
@@ -80,7 +85,7 @@ public class GraphEventServiceImpl implements IGraphEventService {
             request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
             request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
         }).buildClient();
-        IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).events().buildRequest(optionList).get();
+        IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).calendarView().buildRequest(optionList).get();
         final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
         if (null == params.getPageNum() && null == params.getPageSize()) {
             while (null != eventCollectionPage.getNextPage()) {
@@ -123,17 +128,22 @@ public class GraphEventServiceImpl implements IGraphEventService {
             zoneId = ZoneId.systemDefault().getId();
         }
         final List<Option> optionList = new ArrayList<>();
-        String filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-                "or (end/dateTime gt '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-                "or (start/dateTime le '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
-        final QueryOption filter = new QueryOption("$filter", filterStr);
-        optionList.add(filter);
+        //开始时间+1秒
+        final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(start + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+        final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+        optionList.add(startDateTime);
+        optionList.add(endDateTime);
+//        String filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+//                "or (end/dateTime gt '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+//                "or (start/dateTime le '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
+//        final QueryOption filter = new QueryOption("$filter", filterStr);
+//        optionList.add(filter);
         final String finalZoneId = zoneId;
         final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
             request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
             request.addHeader("Prefer", "outlook.timezone=\"" + finalZoneId + "\"");
         }).buildClient();
-        IEventCollectionPage eventCollectionPage = client.users(userPrincipalName).events().buildRequest(optionList).get();
+        IEventCollectionPage eventCollectionPage = client.users(userPrincipalName).calendarView().buildRequest(optionList).get();
         return eventCollectionPage.getCurrentPage().size() > 0;
     }
 
