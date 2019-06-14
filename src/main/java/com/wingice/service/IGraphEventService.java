@@ -1,6 +1,7 @@
 package com.wingice.service;
 
 import com.microsoft.graph.models.extensions.Event;
+import com.wingice.enums.UserEventModeEnum;
 import com.wingice.model.EventCreateParams;
 import com.wingice.model.EventUpdateParams;
 import com.wingice.model.UserEventParams;
@@ -19,10 +20,11 @@ public interface IGraphEventService {
     /**
      * 获取用户事件信息
      *
-     * @param params 查询条件
+     * @param params    查询条件
+     * @param eventMode 查询模式（周期性会议）
      * @return 事件列表
      */
-    List<Event> getUserEvent(UserEventParams params);
+    List<Event> getUserEvent(UserEventParams params, UserEventModeEnum eventMode);
 
     /**
      * 取消事件

@@ -3,6 +3,7 @@ package com.wingice.service.impl;
 import com.microsoft.graph.models.extensions.*;
 import com.microsoft.graph.models.generated.AttendeeType;
 import com.microsoft.graph.models.generated.BodyType;
+import com.wingice.enums.UserEventModeEnum;
 import com.wingice.model.EventCreateParams;
 import com.wingice.model.EventUpdateParams;
 import com.wingice.model.UserEventParams;
@@ -42,7 +43,7 @@ public class GraphEventServiceImplTest {
         params.setContentType("TEXT");
 //        params.setIsOrganizer("true");
         params.setIsCancelled("false");
-        List<Event> eventList = graphEventService.getUserEvent(params);
+        List<Event> eventList = graphEventService.getUserEvent(params, UserEventModeEnum.EVENT);
         eventList.forEach(event -> System.out.println(event.subject));
     }
 

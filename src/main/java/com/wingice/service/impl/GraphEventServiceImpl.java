@@ -8,6 +8,7 @@ import com.microsoft.graph.options.Option;
 import com.microsoft.graph.options.QueryOption;
 import com.microsoft.graph.requests.extensions.GraphServiceClient;
 import com.microsoft.graph.requests.extensions.IEventCollectionPage;
+import com.wingice.enums.UserEventModeEnum;
 import com.wingice.model.EventCreateParams;
 import com.wingice.model.EventParams;
 import com.wingice.model.EventUpdateParams;
@@ -38,25 +39,31 @@ public class GraphEventServiceImpl implements IGraphEventService {
     }
 
     @Override
-    public List<Event> getUserEvent(UserEventParams params) {
+    public List<Event> getUserEvent(UserEventParams params, UserEventModeEnum eventMode) {
         final List<Option> optionList = new ArrayList<>();
         String filterStr = "";
         if (null != params.getStart() && null != params.getEnd()) {
             String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
             zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
             //开始时间加1秒
-            final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(params.getStart() + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
-            final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
-            optionList.add(startDateTime);
-            optionList.add(endDateTime);
-//            filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-//                    "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-//                    "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
+            if (eventMode.equals(UserEventModeEnum.CALENDAR)) {
+                final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(params.getStart() + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+                final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+                optionList.add(startDateTime);
+                optionList.add(endDateTime);
+            }
+            if (eventMode.equals(UserEventModeEnum.EVENT)) {
+                filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                        "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                        "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
+            }
         }
         if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
-//            if (null != filterStr && !"".equals(filterStr)) {
-//                filterStr += " and ";
-//            }
+            if (eventMode.equals(UserEventModeEnum.EVENT)) {
+                if (null != filterStr && !"".equals(filterStr)) {
+                    filterStr += " and ";
+                }
+            }
             filterStr += "isOrganizer eq ";
             filterStr += params.getIsOrganizer();
         }
@@ -85,7 +92,12 @@ public class GraphEventServiceImpl implements IGraphEventService {
             request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
             request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
         }).buildClient();
-        IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).calendarView().buildRequest(optionList).get();
+        IEventCollectionPage eventCollectionPage = null;
+        if (UserEventModeEnum.CALENDAR.equals(eventMode)) {
+            eventCollectionPage = client.users(params.getUserPrincipalName()).calendarView().buildRequest(optionList).get();
+        } else if (UserEventModeEnum.EVENT.equals(eventMode)) {
+            eventCollectionPage = client.users(params.getUserPrincipalName()).events().buildRequest(optionList).get();
+        }
         final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
         if (null == params.getPageNum() && null == params.getPageSize()) {
             while (null != eventCollectionPage.getNextPage()) {
