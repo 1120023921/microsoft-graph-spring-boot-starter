@@ -43,7 +43,7 @@ public class GraphEventServiceImplTest {
         params.setContentType("TEXT");
 //        params.setIsOrganizer("true");
         params.setIsCancelled("false");
-        List<Event> eventList = graphEventService.getUserEvent(params, UserEventModeEnum.EVENT);
+        List<Event> eventList = graphEventService.getUserEvent(params);
         eventList.forEach(event -> System.out.println(event.subject));
     }
 

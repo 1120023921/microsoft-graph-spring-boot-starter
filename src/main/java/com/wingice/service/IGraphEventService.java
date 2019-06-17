@@ -7,6 +7,7 @@ import com.wingice.model.EventUpdateParams;
 import com.wingice.model.UserEventParams;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author 胡昊
@@ -20,11 +21,10 @@ public interface IGraphEventService {
     /**
      * 获取用户事件信息
      *
-     * @param params    查询条件
-     * @param eventMode 查询模式（周期性会议）
+     * @param params 查询条件
      * @return 事件列表
      */
-    List<Event> getUserEvent(UserEventParams params, UserEventModeEnum eventMode);
+    List<Event> getUserEvent(UserEventParams params);
 
     /**
      * 取消事件

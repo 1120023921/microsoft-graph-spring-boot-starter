@@ -8,7 +8,6 @@ import com.microsoft.graph.options.Option;
 import com.microsoft.graph.options.QueryOption;
 import com.microsoft.graph.requests.extensions.GraphServiceClient;
 import com.microsoft.graph.requests.extensions.IEventCollectionPage;
-import com.wingice.enums.UserEventModeEnum;
 import com.wingice.model.EventCreateParams;
 import com.wingice.model.EventParams;
 import com.wingice.model.EventUpdateParams;
@@ -22,6 +21,8 @@ import org.springframework.util.StringUtils;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.List;
+
+import static java.util.Comparator.comparing;
 
 /**
  * @author 胡昊
@@ -39,72 +40,13 @@ public class GraphEventServiceImpl implements IGraphEventService {
     }
 
     @Override
-    public List<Event> getUserEvent(UserEventParams params, UserEventModeEnum eventMode) {
-        final List<Option> optionList = new ArrayList<>();
-        String filterStr = "";
-        if (null != params.getStart() && null != params.getEnd()) {
-            String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
-            zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
-            //开始时间加1秒
-            if (eventMode.equals(UserEventModeEnum.CALENDAR)) {
-                final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(params.getStart() + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
-                final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
-                optionList.add(startDateTime);
-                optionList.add(endDateTime);
-            }
-            if (eventMode.equals(UserEventModeEnum.EVENT)) {
-                filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-                        "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-                        "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
-            }
-        }
-        if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
-            if (eventMode.equals(UserEventModeEnum.EVENT)) {
-                if (null != filterStr && !"".equals(filterStr)) {
-                    filterStr += " and ";
-                }
-            }
-            filterStr += "isOrganizer eq ";
-            filterStr += params.getIsOrganizer();
-        }
-        if (null != params.getIsCancelled() && !"".equals(params.getIsCancelled().trim())) {
-            if (null != filterStr && !"".equals(filterStr)) {
-                filterStr += " and ";
-            }
-            filterStr += ("isCancelled eq ");
-            filterStr += params.getIsCancelled();
-        }
-        if (null != filterStr && !"".equals(filterStr)) {
-            final QueryOption filter = new QueryOption("$filter", filterStr);
-            optionList.add(filter);
-        }
-        if (null != params.getPageNum() && null != params.getPageSize()) {
-            final QueryOption top = new QueryOption("$top", params.getPageSize());
-            final QueryOption skip = new QueryOption("$skip", (params.getPageNum() - 1) * params.getPageSize());
-            optionList.add(top);
-            optionList.add(skip);
-        }
-        if (null != params.getOrderBy() && !"".equals(params.getOrderBy())) {
-            final QueryOption orderby = new QueryOption("$orderby", params.getOrderBy());
-            optionList.add(orderby);
-        }
-        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
-            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
-            request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
-        }).buildClient();
-        IEventCollectionPage eventCollectionPage = null;
-        if (UserEventModeEnum.CALENDAR.equals(eventMode)) {
-            eventCollectionPage = client.users(params.getUserPrincipalName()).calendarView().buildRequest(optionList).get();
-        } else if (UserEventModeEnum.EVENT.equals(eventMode)) {
-            eventCollectionPage = client.users(params.getUserPrincipalName()).events().buildRequest(optionList).get();
-        }
-        final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
-        if (null == params.getPageNum() && null == params.getPageSize()) {
-            while (null != eventCollectionPage.getNextPage()) {
-                eventCollectionPage = eventCollectionPage.getNextPage().buildRequest().get();
-                eventList.addAll(eventCollectionPage.getCurrentPage());
-            }
-        }
+    public List<Event> getUserEvent(UserEventParams params) {
+        List<Event> eventList = getUserNormalEvent(params);
+        eventList.addAll(getUserCalendarEvent(params));
+        Set<Event> eventListTmp = new TreeSet<>(comparing(o -> o.id));
+        eventListTmp.addAll(eventList);
+        eventList.clear();
+        eventList.addAll(eventListTmp);
         return eventList;
     }
 
@@ -132,31 +74,11 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public Boolean checkConflict(String userPrincipalName, Long start, Long end, String timezone) {
-        String zoneId;
-        if (null != timezone && !"".equals(timezone)) {
-            zoneId = ZoneId.SHORT_IDS.get(timezone);
-            zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
-        } else {
-            zoneId = ZoneId.systemDefault().getId();
-        }
-        final List<Option> optionList = new ArrayList<>();
-        //开始时间+1秒
-        final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(start + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
-        final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
-        optionList.add(startDateTime);
-        optionList.add(endDateTime);
-//        String filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-//                "or (end/dateTime gt '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
-//                "or (start/dateTime le '" + DateTimeUtils.longToString(start, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(end, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
-//        final QueryOption filter = new QueryOption("$filter", filterStr);
-//        optionList.add(filter);
-        final String finalZoneId = zoneId;
-        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
-            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
-            request.addHeader("Prefer", "outlook.timezone=\"" + finalZoneId + "\"");
-        }).buildClient();
-        IEventCollectionPage eventCollectionPage = client.users(userPrincipalName).calendarView().buildRequest(optionList).get();
-        return eventCollectionPage.getCurrentPage().size() > 0;
+        UserEventParams params = new UserEventParams();
+        params.setUserPrincipalName(userPrincipalName);
+        params.setStart(start);
+        params.setEnd(end);
+        return getUserEvent(params).size() > 0;
     }
 
     @Override
@@ -241,5 +163,109 @@ public class GraphEventServiceImpl implements IGraphEventService {
             event.attendees = params.getAttendees();
         }
         return event;
+    }
+
+    private List<Event> getUserNormalEvent(UserEventParams params) {
+        final List<Option> optionList = new ArrayList<>();
+        String filterStr = "";
+        if (null != params.getStart() && null != params.getEnd()) {
+            String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
+            zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
+            filterStr = "((start/dateTime ge '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and start/dateTime lt '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                    "or (end/dateTime gt '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime le '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "') " +
+                    "or (start/dateTime le '" + DateTimeUtils.longToString(params.getStart(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "' and end/dateTime ge '" + DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss") + "'))";
+        }
+        if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
+            if (!"".equals(filterStr)) {
+                filterStr += " and ";
+            }
+            filterStr += "isOrganizer eq ";
+            filterStr += params.getIsOrganizer();
+        }
+        if (null != params.getIsCancelled() && !"".equals(params.getIsCancelled().trim())) {
+            if (!"".equals(filterStr)) {
+                filterStr += " and ";
+            }
+            filterStr += ("isCancelled eq ");
+            filterStr += params.getIsCancelled();
+        }
+        if (!"".equals(filterStr)) {
+            final QueryOption filter = new QueryOption("$filter", filterStr);
+            optionList.add(filter);
+        }
+        if (null != params.getPageNum() && null != params.getPageSize()) {
+            final QueryOption top = new QueryOption("$top", params.getPageSize());
+            final QueryOption skip = new QueryOption("$skip", (params.getPageNum() - 1) * params.getPageSize());
+            optionList.add(top);
+            optionList.add(skip);
+        }
+        if (null != params.getOrderBy() && !"".equals(params.getOrderBy())) {
+            final QueryOption orderby = new QueryOption("$orderby", params.getOrderBy());
+            optionList.add(orderby);
+        }
+        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
+            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
+            request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
+        }).buildClient();
+        IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).events().buildRequest(optionList).get();
+        final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
+        if (null == params.getPageNum() && null == params.getPageSize()) {
+            while (null != eventCollectionPage.getNextPage()) {
+                eventCollectionPage = eventCollectionPage.getNextPage().buildRequest().get();
+                eventList.addAll(eventCollectionPage.getCurrentPage());
+            }
+        }
+        return eventList;
+    }
+
+    private List<Event> getUserCalendarEvent(UserEventParams params) {
+        final List<Option> optionList = new ArrayList<>();
+        String filterStr = "";
+        if (null != params.getStart() && null != params.getEnd()) {
+            String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
+            zoneId = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
+            final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(params.getStart() + 1000, ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+            final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(params.getEnd(), ZoneId.of(zoneId), "yyyy-MM-dd'T'HH:mm:ss"));
+            optionList.add(startDateTime);
+            optionList.add(endDateTime);
+        }
+        if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
+            filterStr += " and isOrganizer eq ";
+            filterStr += params.getIsOrganizer();
+        }
+        if (null != params.getIsCancelled() && !"".equals(params.getIsCancelled().trim())) {
+            if (!"".equals(filterStr)) {
+                filterStr += " and ";
+            }
+            filterStr += ("isCancelled eq ");
+            filterStr += params.getIsCancelled();
+        }
+        if (!"".equals(filterStr)) {
+            final QueryOption filter = new QueryOption("$filter", filterStr);
+            optionList.add(filter);
+        }
+        if (null != params.getPageNum() && null != params.getPageSize()) {
+            final QueryOption top = new QueryOption("$top", params.getPageSize());
+            final QueryOption skip = new QueryOption("$skip", (params.getPageNum() - 1) * params.getPageSize());
+            optionList.add(top);
+            optionList.add(skip);
+        }
+        if (null != params.getOrderBy() && !"".equals(params.getOrderBy())) {
+            final QueryOption orderby = new QueryOption("$orderby", params.getOrderBy());
+            optionList.add(orderby);
+        }
+        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
+            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
+            request.addHeader("Prefer", "outlook.timezone=\"" + params.getTimezone().replaceAll("\"", "") + "\",outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
+        }).buildClient();
+        IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).calendarView().buildRequest(optionList).get();
+        final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
+        if (null == params.getPageNum() && null == params.getPageSize()) {
+            while (null != eventCollectionPage.getNextPage()) {
+                eventCollectionPage = eventCollectionPage.getNextPage().buildRequest().get();
+                eventList.addAll(eventCollectionPage.getCurrentPage());
+            }
+        }
+        return eventList;
     }
 }
