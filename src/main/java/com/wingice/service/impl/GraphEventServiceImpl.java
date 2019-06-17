@@ -41,12 +41,61 @@ public class GraphEventServiceImpl implements IGraphEventService {
 
     @Override
     public List<Event> getUserEvent(UserEventParams params) {
-        List<Event> eventList = getUserNormalEvent(params);
-        eventList.addAll(getUserCalendarEvent(params));
-        Set<Event> eventListTmp = new TreeSet<>(comparing(o -> o.id));
-        eventListTmp.addAll(eventList);
-        eventList.clear();
-        eventList.addAll(eventListTmp);
+        final List<Option> optionList = new ArrayList<>();
+        String filterStr = "";
+        if (null != params.getStart() && null != params.getEnd()) {
+            final QueryOption startDateTime = new QueryOption("startDateTime", DateTimeUtils.longToString(params.getStart() + 1000, ZoneId.of("+00:00"), "yyyy-MM-dd'T'HH:mm:ss"));
+            final QueryOption endDateTime = new QueryOption("endDateTime", DateTimeUtils.longToString(params.getEnd(), ZoneId.of("+00:00"), "yyyy-MM-dd'T'HH:mm:ss"));
+            optionList.add(startDateTime);
+            optionList.add(endDateTime);
+        }
+        if (null != params.getIsOrganizer() && !"".equals(params.getIsOrganizer().trim())) {
+            filterStr += " and isOrganizer eq ";
+            filterStr += params.getIsOrganizer();
+        }
+        if (null != params.getIsCancelled() && !"".equals(params.getIsCancelled().trim())) {
+            if (!"".equals(filterStr)) {
+                filterStr += " and ";
+            }
+            filterStr += ("isCancelled eq ");
+            filterStr += params.getIsCancelled();
+        }
+        if (!"".equals(filterStr)) {
+            final QueryOption filter = new QueryOption("$filter", filterStr);
+            optionList.add(filter);
+        }
+        if (null != params.getPageNum() && null != params.getPageSize()) {
+            final QueryOption top = new QueryOption("$top", params.getPageSize());
+            final QueryOption skip = new QueryOption("$skip", (params.getPageNum() - 1) * params.getPageSize());
+            optionList.add(top);
+            optionList.add(skip);
+        }
+        if (null != params.getOrderBy() && !"".equals(params.getOrderBy())) {
+            final QueryOption orderby = new QueryOption("$orderby", params.getOrderBy());
+            optionList.add(orderby);
+        }
+        final IGraphServiceClient client = GraphServiceClient.builder().authenticationProvider(request -> {
+            request.addHeader("Authorization", "Bearer " + authenticatedClientService.getAccessToken());
+            request.addHeader("Prefer", "outlook.body-content-type=\"" + params.getContentType().replaceAll("\"", "") + "\"");
+        }).buildClient();
+        IEventCollectionPage eventCollectionPage = client.users(params.getUserPrincipalName()).calendarView().buildRequest(optionList).get();
+        final List<Event> eventList = new LinkedList<>(eventCollectionPage.getCurrentPage());
+        if (null == params.getPageNum() && null == params.getPageSize()) {
+            while (null != eventCollectionPage.getNextPage()) {
+                eventCollectionPage = eventCollectionPage.getNextPage().buildRequest().get();
+                eventList.addAll(eventCollectionPage.getCurrentPage());
+            }
+        }
+        String zoneId = ZoneId.SHORT_IDS.get(params.getTimezone());
+        final String zoneIdRes = (zoneId != null ? zoneId : ZoneId.systemDefault().getId());
+        eventList.forEach(event -> {
+            final Long start = DateTimeUtils.stringToLong(event.start.dateTime.replaceAll(".0000000", ""), ZoneId.of("+00:00"), "yyyy-MM-dd'T'HH:mm:ss");
+            event.start.dateTime = DateTimeUtils.longToString(start, ZoneId.of(zoneIdRes), "yyyy-MM-dd'T'HH:mm:ss");
+            event.start.timeZone = zoneIdRes;
+            final Long end = DateTimeUtils.stringToLong(event.end.dateTime.replaceAll(".0000000", ""), ZoneId.of("+00:00"), "yyyy-MM-dd'T'HH:mm:ss");
+            event.end.dateTime = DateTimeUtils.longToString(end, ZoneId.of(zoneIdRes), "yyyy-MM-dd'T'HH:mm:ss");
+            event.end.timeZone = zoneIdRes;
+        });
         return eventList;
     }
 
