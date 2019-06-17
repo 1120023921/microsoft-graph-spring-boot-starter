@@ -34,7 +34,7 @@ public class GraphEventServiceImplTest {
     @Test
     public void getUserEvent() {
         UserEventParams params = new UserEventParams();
-        params.setUserPrincipalName("MeetingRoom101@wingice.com");
+        params.setUserPrincipalName("2015014093@wingice.com");
         params.setStart(1561249800000L);
         params.setEnd(1561294800000L);
         params.setPageNum(1);

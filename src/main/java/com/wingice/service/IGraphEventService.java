@@ -61,4 +61,12 @@ public interface IGraphEventService {
      * @return 更新的 event 对象
      */
     Event updateEvent(EventUpdateParams params);
+
+    /**
+     * 获取用户普通事件
+     *
+     * @param params 查询条件
+     * @return 事件列表
+     */
+    List<Event> getUserNormalEvent(UserEventParams params);
 }

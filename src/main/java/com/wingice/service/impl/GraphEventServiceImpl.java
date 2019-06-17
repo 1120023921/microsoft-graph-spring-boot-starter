@@ -214,7 +214,8 @@ public class GraphEventServiceImpl implements IGraphEventService {
         return event;
     }
 
-    private List<Event> getUserNormalEvent(UserEventParams params) {
+    @Override
+    public List<Event> getUserNormalEvent(UserEventParams params) {
         final List<Option> optionList = new ArrayList<>();
         String filterStr = "";
         if (null != params.getStart() && null != params.getEnd()) {
