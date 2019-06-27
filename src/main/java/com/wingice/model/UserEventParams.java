@@ -48,7 +48,7 @@ public class UserEventParams {
     /**
      * 是否取消
      */
-    private String isCancelled;
+    private String isCancelled = "false";
 
     /**
      * 排序
